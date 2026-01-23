@@ -2,8 +2,10 @@ gradio>=6.0.0
 numpy
 opencv-python
 Pillow
-trimesh
+trimesh>=4.0.0
 scipy
-pystray
+shapely
+scikit-image
+mapbox_earcut
 lxml
 networkx
