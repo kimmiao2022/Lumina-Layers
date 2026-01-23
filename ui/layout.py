@@ -46,7 +46,7 @@ def create_app():
                 gr.HTML("""
                 <div class="header-banner">
                     <h1>✨ Lumina Studio</h1>
-                    <p>多材料3D打印色彩系统 | Multi-Material 3D Print Color System | v1.3</p>
+                    <p>多材料3D打印色彩系统 | Multi-Material 3D Print Color System | v1.4</p>
                 </div>
                 """)
             with gr.Column(scale=1, min_width=120):
@@ -256,8 +256,10 @@ def create_converter_tab():
     """创建图像转换Tab"""
     with gr.TabItem("💎 图像转换 Converter", id=2):
         gr.Markdown("""
-        ### 第三步：转换图像 | Step 3: Convert Image
-        **流程**: 设置参数 → 预览 → 点击图片放置挂孔(暂不推荐使用) → 调整参数 → 生成
+        ### 第三步：转换图像 | Step 3: Convert Image 已知BUG：部分图会产生模型生成问题 请选择边缘干净的图片 矢量模式为后续更新准备，目前与版画模式差异极小
+        **三种建模模式**：矢量（平滑曲线）、版画（细节优化）、像素（方块风格）
+        
+        **流程**: 上传LUT和图像 → 选择建模模式 → 调整色彩细节 → 预览 → 生成
         """)
 
         # 状态变量
@@ -282,11 +284,33 @@ def create_converter_tab():
                     value="双面 (钥匙扣)",
                     label="结构"
                 )
-                with gr.Row():
-                    conv_auto_bg = gr.Checkbox(label="移除背景", value=True)
-                    conv_tol = gr.Slider(0, 150, 40, label="容差")
-                conv_width = gr.Slider(20, 150, 60, label="宽度 (mm)")
-                conv_thick = gr.Slider(0.2, 2.0, 1.2, step=0.08, label="背板 (mm)")
+
+                # ========== NEW: Modeling Mode Controls ==========
+                conv_modeling_mode = gr.Radio(
+                    choices=[
+                        "矢量 (平滑曲线) Vector (Smooth)",
+                        "像素 (方块风格) Voxel (Blocky)",
+                        "版画 (细节优化) Woodblock (Detail-Optimized)"
+                    ],
+                    value="矢量 (平滑曲线) Vector (Smooth)",
+                    label="🎨 建模模式 Modeling Mode",
+                    info="矢量：平滑曲线 | 像素：方块风格 | 版画：SLIC超像素+细节保护"
+                )
+
+                conv_quantize_count = gr.Slider(
+                    minimum=8, maximum=256, step=8, value=16,
+                    label="🎨 矢量色彩细节 Vector Color Detail",
+                    info="颜色数量越多细节越丰富，但生成越慢 | Higher = More detail, Slower"
+                )
+                # ========== END NEW CONTROLS ==========
+
+                conv_auto_bg = gr.Checkbox(label="🗑️ 移除背景 Remove Background", value=True,
+                                          info="自动移除图像背景色 | Auto remove background")
+                conv_tol = gr.Slider(0, 150, 40, label="容差 Tolerance",
+                                    info="背景容差值 (0-150)，值越大移除越多 | Higher = Remove more")
+
+                conv_width = gr.Slider(20, 400, 60, label="宽度 Width (mm)")
+                conv_thick = gr.Slider(0.2, 3.5, 1.2, step=0.08, label="背板 (mm)")
 
                 conv_preview_btn = gr.Button("👁️👁️ 生成预览", variant="secondary", size="lg")
 
@@ -317,7 +341,7 @@ def create_converter_tab():
                         conv_loop_angle = gr.Slider(-180, 180, 0, step=5, label="旋转角度°")
                         conv_loop_info = gr.Textbox(label="挂孔位置", interactive=False, scale=2)
 
-                conv_log = gr.Textbox(label="状态", lines=1, interactive=False)
+                conv_log = gr.Textbox(label="状态", lines=6, interactive=False, max_lines=10, show_label=True)
 
             # 右侧：输出
             with gr.Column(scale=1):
@@ -378,7 +402,8 @@ def create_converter_tab():
             generate_final_model,
             inputs=[conv_img, conv_lut, conv_width, conv_thick,
                     conv_structure, conv_auto_bg, conv_tol, conv_color_mode,
-                    conv_add_loop, conv_loop_width, conv_loop_length, conv_loop_hole, conv_loop_pos],
+                    conv_add_loop, conv_loop_width, conv_loop_length, conv_loop_hole, conv_loop_pos,
+                    conv_modeling_mode, conv_quantize_count],  # NEW: Added modeling_mode and quantize_count
             outputs=[conv_file, conv_3d_preview, conv_preview, conv_log]
         )
 
@@ -387,7 +412,7 @@ def create_about_tab():
     """创建关于Tab"""
     with gr.TabItem("ℹ️ 关于 About", id=3):
         gr.Markdown("""
-        ## 🌟 Lumina Studio v1.3
+        ## 🌟 Lumina Studio v1.4
         
         **多材料3D打印色彩系统** | Multi-Material 3D Print Color System
         
@@ -416,11 +441,46 @@ def create_about_tab():
         
         - **Beer-Lambert 光学混色** Optical Color Mixing
         - **KD-Tree 色彩匹配** Color Matching
-        - **Integer Slab 几何优化** Geometry Optimization
+        - **OpenCV 轮廓提取** Contour Extraction for Vector Mode
+        - **SLIC 超像素分割** Superpixel Segmentation for Woodblock Mode
+        - **K-Means 色彩量化** Color Quantization for Detail Preservation
         
         ---
         
-        ### 📝 v1.3 更新日志 Changelog
+        ### 📝 v1.4 更新日志 Changelog
+        
+        #### 🚀 核心功能：三大建模模式
+        
+        - ✅ **矢量模式（Vector）** - CAD级精度，平滑曲线（10 px/mm）
+        - ✅ **版画模式（Woodblock）** ⭐ - SLIC超像素 + 细节保护
+        - ✅ **像素模式（Voxel）** - 经典方块美学，像素艺术风格
+        
+        #### 🖼️ 版画模式技术栈
+    
+        - RAG智能合并（区分噪点与真实细节）
+        - Mitre连接（保持尖锐角点，版画刀刻质感）
+        
+        #### 🎨 矢量模式升级
+        
+        - 超高精度矢量化（epsilon=0.1，~80-100点/cm）
+        - 0.2mm喷嘴兼容（保留 ≥ 4像素² 特征）
+        - 垂直层合并RLE（消除Z轴阶梯伪影）
+        
+        #### 🌈 色彩量化新架构
+        
+        - K-Means聚类（8-256色可调，默认16色）
+        - "先聚类，后匹配"（速度提升1000×）
+        - 双边滤波 + 中值滤波（消除碎片化区域）
+        
+        #### 其他改进
+        
+        - 📏 分辨率解耦（矢量/版画10px/mm，像素2.4px/mm）
+        - 🎮 3D预览智能降采样（大模型自动简化）
+        - 🚫 浏览器崩溃保护（检测复杂度，超200万像素禁用预览）
+        
+        ---
+        
+        ### 📝 v1.3 更新日志 Previous Changelog
         
         - ✅ **新增钥匙扣挂孔** Added keychain loop feature
         - ✅ 挂孔颜色自动检测 Auto-detect loop color from nearby pixels
@@ -435,10 +495,12 @@ def create_about_tab():
         ### 🚧 开发路线图 Roadmap
         
         - [✅] 4色基础模式 4-color base mode
+        - [✅] 三种建模模式 Three modeling modes (Vector/Woodblock/Voxel)
+        - [✅] 版画模式SLIC引擎 Woodblock mode SLIC engine
         - [✅] 钥匙扣挂孔 Keychain loop
+        - [🚧] 漫画模式 Manga mode (Ben-Day dots simulation)
         - [ ] 6色扩展模式 6-color extended mode
         - [ ] 8色专业模式 8-color professional mode
-        - [ ] 版画模式 Woodblock print mode
         - [ ] 拼豆模式 Perler bead mode
         
         ---
@@ -447,11 +509,24 @@ def create_about_tab():
         
         **CC BY-NC-SA 4.0** - Attribution-NonCommercial-ShareAlike
         
+        **商业豁免 Commercial Exemption**: 个人创作者、街边摊贩、小型私营企业可免费使用本软件生成模型并销售实体打印品。
+        
+        Individual creators, street vendors, and small businesses may freely use this software to generate models and sell physical prints.
+        
+        ---
+        
+        ### 🙏 致谢 Acknowledgments
+        
+        特别感谢 Special thanks to:
+        - **HueForge** - 在FDM打印中开创光学混色技术 Pioneering optical color mixing
+        - **AutoForge** - 让多色工作流民主化 Democratizing multi-color workflows
+        - **3D打印社区** - 持续创新 Continuous innovation
+        
         ---
         
         <div style="text-align:center; color:#888; margin-top:20px;">
             Made with ❤️ by [MIN]<br>
-            v1.3.0 | 2025
+            v1.4.0 | 2025
         </div>
         """)
 
