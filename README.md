@@ -293,7 +293,23 @@ git clone https://github.com/MOVIBALE/Lumina-Layers.git
 cd Lumina-Layers
 ```
 
-### Install dependencies
+### Option 1: Docker (Recommended)
+
+Using Docker is the easiest way to run Lumina Studio without worrying about system-level dependencies (like `cairo` or `pkg-config`).
+
+1. **Build the image**:
+   ```bash
+   docker build -t lumina-layers .
+   ```
+
+2. **Run the container**:
+   ```bash
+   docker run -p 7860:7860 lumina-layers
+   ```
+
+3. Open your browser to `http://localhost:7860`.
+
+### Option 2: Local Installation
 
 **Core dependencies** (required):
 ```bash
