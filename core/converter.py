@@ -477,9 +477,9 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     slot_names = color_conf['slots']
     preview_colors = color_conf['preview']
     
-    # Validate backing_color_id
+    # Validate backing_color_id (allow -2 as special marker for separation)
     num_materials = len(slot_names)
-    if backing_color_id < 0 or backing_color_id >= num_materials:
+    if backing_color_id != -2 and (backing_color_id < 0 or backing_color_id >= num_materials):
         print(f"[CONVERTER] Warning: Invalid backing_color_id={backing_color_id}, using default (0)")
         backing_color_id = 0
     
@@ -617,8 +617,13 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     # Conditionally generate backing mesh (only when separate_backing=True)
     # Error handling for backing mesh generation (Requirement 8.1, 8.3)
     if separate_backing:
+        print(f"[CONVERTER] Attempting to generate separate backing mesh (mat_id=-2)...")
         try:
             backing_mesh = mesher.generate_mesh(full_matrix, mat_id=-2, height_px=target_h)
+            
+            print(f"[CONVERTER] Backing mesh result: {backing_mesh}")
+            if backing_mesh is not None:
+                print(f"[CONVERTER] Backing mesh vertices: {len(backing_mesh.vertices)}")
             
             if backing_mesh is None or len(backing_mesh.vertices) == 0:
                 # Empty mesh - skip and log warning (Requirement 8.3)
@@ -635,10 +640,13 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 backing_mesh.metadata['name'] = backing_name
                 scene.add_geometry(backing_mesh, node_name=backing_name, geom_name=backing_name)
                 valid_slot_names.append(backing_name)
-                print(f"[CONVERTER] Added backing mesh as separate object (white)")
+                print(f"[CONVERTER] ✅ Added backing mesh as separate object (white)")
+                print(f"[CONVERTER] Scene now has {len(scene.geometry)} geometries")
         except Exception as e:
             # Log error and continue with other meshes (Requirement 8.1)
             print(f"[CONVERTER] Error generating backing mesh: {e}")
+            import traceback
+            traceback.print_exc()
             print(f"[CONVERTER] Continuing with other material meshes...")
     else:
         print(f"[CONVERTER] Backing merged with first layer (original behavior)")
@@ -890,9 +898,9 @@ def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mod
         
         full_matrix[0:5] = bottom_voxels
         
-        # Use material_id=-2 to mark backing layer instead of 0
+        # Use backing_color_id parameter to mark backing layer
         spacer = np.full((target_h, target_w), -1, dtype=int)
-        spacer[~mask_transparent] = -2
+        spacer[~mask_transparent] = backing_color_id
         for z in range(5, 5 + spacer_layers):
             full_matrix[z] = spacer
         
@@ -905,9 +913,9 @@ def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mod
         
         full_matrix[0:5] = bottom_voxels
         
-        # Use material_id=-2 to mark backing layer instead of 0
+        # Use backing_color_id parameter to mark backing layer
         spacer = np.full((target_h, target_w), -1, dtype=int)
-        spacer[~mask_transparent] = -2
+        spacer[~mask_transparent] = backing_color_id
         for z in range(5, total_layers):
             full_matrix[z] = spacer
         
@@ -1003,9 +1011,11 @@ def _create_preview_mesh(matched_rgb, mask_solid, total_layers, backing_color_id
                 ])
 
                 # Apply backing color
-                backing_rgba = [int(preview_colors[backing_color_id][0]),
-                               int(preview_colors[backing_color_id][1]),
-                               int(preview_colors[backing_color_id][2]), 255]
+                # When backing_color_id=-2 (separate backing), use white color (material_id=0)
+                actual_backing_color_id = 0 if backing_color_id == -2 else backing_color_id
+                backing_rgba = [int(preview_colors[actual_backing_color_id][0]),
+                               int(preview_colors[actual_backing_color_id][1]),
+                               int(preview_colors[actual_backing_color_id][2]), 255]
 
                 cube_faces = [
                     [0, 2, 1], [0, 3, 2],
@@ -1404,7 +1414,8 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
         blur_kernel=0,
         smooth_sigma=10,
         color_replacements=color_replacements,
-        backing_color_id=backing_color_id
+        backing_color_id=backing_color_id,
+        separate_backing=separate_backing  # 传递separate_backing参数
     )
 
 
