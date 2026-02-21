@@ -68,6 +68,66 @@ if hasattr(I18n, 'TEXTS'):
         'conv_lut_status': {'zh': '💡 拖放.npy文件自动添加', 'en': '💡 Drop .npy file to load'},
     })
 
+DEBOUNCE_JS = """
+<script>
+(function () {
+  function setupBlurTrigger() {
+    var sliders = document.querySelectorAll('.compact-row input[type="number"]');
+    if (!sliders.length) return false;
+    sliders.forEach(function (input) {
+      if (input.__blur_bound) return;
+      input.__blur_bound = true;
+      var lastValue = input.value;
+      // 捕获阶段拦截所有 input 事件，阻止 Gradio 立即处理
+      input.addEventListener('input', function (e) {
+        if (input.__dispatching) return;
+        e.stopImmediatePropagation();
+      }, true);
+      // 失焦时，如果值有变化且在合法范围内，才触发一次 input 事件
+      input.addEventListener('blur', function () {
+        var val = parseFloat(input.value);
+        if (input.value !== lastValue && !isNaN(val)) {
+          var min = parseFloat(input.min);
+          var max = parseFloat(input.max);
+          if (!isNaN(min) && val < min) { input.value = min; val = min; }
+          if (!isNaN(max) && val > max) { input.value = max; val = max; }
+          lastValue = input.value;
+          input.__dispatching = true;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.__dispatching = false;
+        }
+        lastValue = input.value;
+      });
+      // Enter 键也触发
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+      });
+    });
+    return true;
+  }
+
+  function init() {
+    if (setupBlurTrigger()) return;
+    var observer = new MutationObserver(function () {
+      if (setupBlurTrigger()) observer.disconnect();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+      setTimeout(init, 1000);
+    });
+  } else {
+    setTimeout(init, 1000);
+  }
+})();
+</script>
+"""
+
 CONFIG_FILE = "user_settings.json"
 
 
