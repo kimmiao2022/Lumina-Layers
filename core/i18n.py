@@ -18,8 +18,8 @@ class I18n:
             'en': '✨ Lumina Studio'
         },
         'app_subtitle': {
-            'zh': '多材料3D打印色彩系统 | v1.5.8',
-            'en': 'Multi-Material 3D Print Color System | v1.5.8'
+            'zh': '多材料3D打印色彩系统 | v1.5.9',
+            'en': 'Multi-Material 3D Print Color System | v1.5.9'
         },
         'lang_btn_zh': {
             'zh': '🌐 中文',
@@ -676,7 +676,7 @@ class I18n:
         
         # ==================== About Page Content ====================
         'about_content': {
-            'zh': """## 🌟 Lumina Studio v1.5.8
+            'zh': """## 🌟 Lumina Studio v1.5.9
 
 **多材料3D打印色彩系统**
 
@@ -707,6 +707,18 @@ class I18n:
 - **KD-Tree 色彩匹配**
 - **RLE 几何生成**
 - **K-Means 色彩量化**
+
+---
+
+### 📝 v1.5.9 更新日志
+
+#### 🧹 孤立像素清理
+- 新增孤立像素清理功能（高保真模式自动启用）
+- 智能检测并合并孤立色块，提升打印质量
+
+#### 🔧 代码质量改进
+- 替换所有裸异常捕获为 `except Exception`
+- 新增 Aliz PLA & PETG 4/6/8色 npy 预设
 
 ---
 
@@ -827,10 +839,10 @@ class I18n:
 
 <div style="text-align:center; color:#888; margin-top:20px;">
     Made with ❤️ by [MIN]<br>
-    v1.5.8 | 2025
+    v1.5.9 | 2025
 </div>
 """,
-            'en': """## 🌟 Lumina Studio v1.5.8
+            'en': """## 🌟 Lumina Studio v1.5.9
 
 **Multi-Material 3D Print Color System**
 
@@ -861,6 +873,18 @@ Accurate color reproduction for FDM printing
 - **KD-Tree Color Matching**
 - **RLE Geometry Generation**
 - **K-Means Color Quantization**
+
+---
+
+### 📝 v1.5.9 Changelog
+
+#### 🧹 Isolated Pixel Cleanup
+- Added isolated pixel cleanup feature (auto-enabled in High-Fidelity mode)
+- Smart detection and merging of isolated color blocks for better print quality
+
+#### 🔧 Code Quality Improvements
+- Replaced all bare except clauses with `except Exception`
+- Added Aliz PLA & PETG 4/6/8 color npy presets
 
 ---
 
@@ -981,7 +1005,7 @@ Special thanks to:
 
 <div style="text-align:center; color:#888; margin-top:20px;">
     Made with ❤️ by [MIN]<br>
-    v1.5.8 | 2025
+    v1.5.9 | 2025
 </div>
 """
         },
